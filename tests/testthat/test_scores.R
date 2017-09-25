@@ -16,28 +16,25 @@ test_that("score calculations equal", {
 
   # Checking log likelihood calculations
   expect_equal(log_likelihood(integrand = logit_integrand, 
-                         allocation = aaa[2], 
+                         # allocation = aaa[2], 
                          X = XXX[1:2, ], A = AAA[1:2], 
-                         fixed.effects = fff, 
-                         x = fff[1], pos = 1,
+                         parameters = fff,
                          randomization = .5), -1.63675630315117)
   
   # Checking score calculations
   expect_equal(score_calc(integrand = logit_integrand, 
-                               allocation = .3, 
+                               # allocation = .3, 
                                X = XXX[1:2, ], A = AAA[1:2], 
-                               fixed.effects = c(1, .5), 
-                               random.effects = NULL,
+                               parameters = c(1, .5), 
                                randomization = .5), c(0.1032180156133930,
                                                       0.0286844121526597))
   
   # Checking score matrix calculations
   expect_equal(score_matrix(integrand = logit_integrand,
-                                 allocations = aaa,
+                                 # allocations = aaa,
                                  X = XXX, A = AAA, G = GGG,
-                                 fixed.effects = fff,
-                                 random.effects = 5,
-                                 randomization = .5), sss)
+                                 parameters = c(fff, 5),
+                                 randomization = .5, runSilent = TRUE), sss)
 })
 
 

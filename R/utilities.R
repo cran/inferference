@@ -1,17 +1,17 @@
 #-----------------------------------------------------------------------------#
-# Get arguments from a function
-# 
-# Extracts the names of the arguments from a function, and creates a list 
-# of those arguments where they exist in ... . 
-# 
-# @param FUN function for which to find arguments
-# @param args_list a list of arguments. Defaults to NULL.
-# @param ... any arguments. Those necessary for FUN must be named as appropriate for FUN
-# @return list of arguments for FUN
-# @export
-# @examples
-# myargs <- get_args(lm, formula = Sepal.Length ~ Sepal.Width, data = iris )
-# summary(do.call('lm', myargs))
+#' Get arguments from a function
+#' 
+#' Extracts the names of the arguments from a function, and creates a list
+#' of those arguments where they exist in ... .
+#' 
+#' @param FUN function for which to find arguments
+#' @param args_list a list of arguments. Defaults to NULL.
+#' @param ... any arguments. Those necessary for FUN must be named as appropriate for FUN
+#' @return list of arguments for FUN
+#' @export
+#' @examples
+#' myargs <- get_args(lm, formula = Sepal.Length ~ Sepal.Width, data = iris )
+#' summary(do.call('lm', myargs))
 #-----------------------------------------------------------------------------#
 
 get_args <- function(FUN, args_list = NULL, ...){
@@ -149,7 +149,8 @@ direct_effect <- function(object,
               ce$alpha2 == allocation & ce$trt2 == !trt.lvl1*1, ]
   }
   rownames(out) <- NULL
-  return(out)
+  out[ , c('alpha1', 'trt1', 'alpha2', 'trt2', 
+           'estimate', 'std.error', 'conf.low', 'conf.high')]
 }
 
 #-----------------------------------------------------------------------------#
@@ -186,7 +187,8 @@ indirect_effect <- function(object,
   }
   
   rownames(out) <- NULL
-  return(out)
+  out[ , c('alpha1', 'trt1', 'alpha2', 'trt2', 
+           'estimate', 'std.error', 'conf.low', 'conf.high')]
 }
 
 #-----------------------------------------------------------------------------#
@@ -231,7 +233,8 @@ total_effect <- function(object,
   }
 
   rownames(out) <- NULL
-  return(out)
+  out[ , c('alpha1', 'trt1', 'alpha2', 'trt2', 
+           'estimate', 'std.error', 'conf.low', 'conf.high')]
 }
 
 #-----------------------------------------------------------------------------#
@@ -268,7 +271,8 @@ overall_effect <- function(object,
   }
 
   rownames(out) <- NULL
-  return(out)
+  out[ , c('alpha1', 'trt1', 'alpha2', 'trt2', 
+           'estimate', 'std.error', 'conf.low', 'conf.high')]
 }
 
 #-----------------------------------------------------------------------------#
@@ -277,3 +281,49 @@ overall_effect <- function(object,
 #-----------------------------------------------------------------------------#
 
 oe <- overall_effect
+
+#-----------------------------------------------------------------------------#
+#' Plot histograms of weights from an interference object
+#' 
+#' @param obj an \code{interference} object
+#' @param allocations optional numeric vector of allocations for which to print
+#' histogram. If NULL (the default), five allocations selected evenly from the 
+#' first allocation to the last are printed.
+#' @param ... additional arguments passed to \code{\link{hist}}
+#' @return histogram of group-level weights
+#' @export
+#-----------------------------------------------------------------------------#
+
+diagnose_weights <- function(obj, allocations = NULL, ...){
+  
+  obj_allocations <- as.numeric(dimnames(obj$weights)[[2]])
+
+  if(!is.null(allocations)){
+    if(!all(allocations %in% obj_allocations)){
+      stop('Allocations argument must only include allocation levels used in interference call.')
+    } else {
+      which_cols <- which(obj_allocations %in% allocations)
+      w <- obj$weights[ , which_cols, drop = FALSE]  
+    }
+  } else {
+    n <- ncol(obj$weights)
+    if(n > 5){ 
+      # Use first and last allocations plus 4 in between
+      m   <- ceiling(stats::median(1:n))
+      m_1 <- ceiling(stats::median(1:(n/2)))
+      m_2 <- ceiling(stats::median((n/2):n))
+      w <- obj$weights[ , c(1, m_1, m, m_2 ,n), drop = FALSE]
+    } else {
+      w <- obj$weights
+    }
+  }
+  
+  for(j in 1:ncol(w)) {
+    graphics::hist(w[ , j], 
+         main = '',
+         # main = expression("Histogram of " * frac(pi[i](alpha), Pr(bold(A)[i] *'|'* bold(L)[i]))),
+         xlab = substitute(alpha * " = " * a, list(a = dimnames(w)[[2]][j])),
+         ...)
+  }
+  
+}

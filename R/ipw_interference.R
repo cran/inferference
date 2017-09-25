@@ -11,8 +11,7 @@
 # @param B 'participation' vector. Defaults to A in the case there is no
 # participation variable.
 # @param G group assignment vector
-# @param fixed.effects vector of fixed effects
-# @param random.effects vector of random effects 
+# @param parameters a list of fixed_effects and random_effects
 # @param variance_estimation currently supports 'robust' or 'naive'
 # @param ... additional arguments passed to other functions such as 
 # \code{\link{glmer}}, \code{\link{grad}}, and \code{integrand} or \code{likelihood}.
@@ -28,10 +27,10 @@ ipw_interference <- function(propensity_integrand,
                              loglihood_integrand = propensity_integrand,
                              allocations,
                              Y, X, A, B = A, G, 
-                             fixed.effects, 
-                             random.effects,
+                             parameters,
                              variance_estimation,
-                             set_NA_to_0 = TRUE,
+                             runSilent   = TRUE, 
+                             integrate_allocation,
                              ...)
 {
   dots <- list(...)
@@ -43,35 +42,32 @@ ipw_interference <- function(propensity_integrand,
   point_est_args <- get_args(FUN = ipw_point_estimates, args_list = dots)
   loglihood_args <- get_args(FUN = loglihood_integrand, args_list = dots)
   grad_args      <- get_args(FUN = numDeriv::grad, args_list = dots)
-  integrate_args <- get_args(FUN = integrate, args_list = dots)
+  integrate_args <- get_args(FUN = stats::integrate, args_list = dots)
   
   weight_args <- append(append(integrand_args, integrate_args),
-                        list(integrand = propensity_integrand, 
+                        list(integrand   = propensity_integrand, 
                              allocations = allocations, 
                              X = X, A = A, G = G,
-                             fixed.effects = fixed.effects,
-                             random.effects = random.effects))
+                             parameters = parameters,
+                             runSilent  = runSilent, #BB 2015-06-23
+                             integrate_allocation = integrate_allocation
+                             ))
   #### Prepare output ####
   out <- list()  
 
   ## Compute Weights ##
   weights <- do.call(wght_matrix, args = weight_args)
-  if(variance_estimation == 'robust'){
-    weightd <- do.call(wght_deriv_array, args = append(weight_args, grad_args))  
-  } 
   
-  ## replace any missing weights with 0 ##
-  if(set_NA_to_0 == TRUE) {
-    weights[is.na(weights)] <- 0
-    if(variance_estimation == 'robust'){ 
-      weightd[is.na(weightd)] <- 0 
-      out$weightd <- weightd
-    }
+  if(variance_estimation == 'robust'){
+    weightd <- do.call(wght_deriv_array, args = append(weight_args, grad_args)) 
+    out$weightd <- weightd
   }
+  
   
   #### COMPUTE ESTIMATES AND OUTPUT ####
   estimate_args <- append(point_est_args, list(Y = Y, G = G, A = A))
-  point_args <- append(estimate_args, list(weights = weights))
+  point_args    <- append(estimate_args, list(weights = weights))
+
 
   #### Calculate output ####
   out$point_estimates <- do.call(ipw_point_estimates, args = point_args)
@@ -82,23 +78,15 @@ ipw_interference <- function(propensity_integrand,
     score_args <- append(sargs, list(integrand = loglihood_integrand,
                                      X = X, G = G, 
                                      A = B, # Use B for treatment in scores
-                                     fixed.effects = fixed.effects,
-                                     random.effects = random.effects))
+                                     parameters = parameters,
+                                     runSilent  = runSilent #BB 2015-06-23
+                                     ))
     
     # set randomization scheme to 1 for scores for logit_integrand
     score_args$randomization <- 1
     
-    # If integrate.allocation is used in the integrand (as in logit_integrand)
-    # set this argument to FALSE
-    if('integrate.allocation' %in% names(formals(loglihood_integrand))){
-      score_args$integrate.allocation <- FALSE
-    }
     out$Upart           <- do.call(ipw_point_estimates, args = U_args)
     out$scores          <- do.call(score_matrix, args = score_args)
-    ## replace any scores with 0 ##
-    if(set_NA_to_0 == TRUE) {
-      out$scores[is.na(out$scores)] <- 0
-    }
   } 
 
   out$weights <- weights
