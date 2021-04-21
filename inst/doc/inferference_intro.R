@@ -1,13 +1,13 @@
-## ----setup, echo = FALSE, eval = TRUE, cache=FALSE-----------------------
+## ----setup, echo = FALSE, eval = TRUE, cache=FALSE----------------------------
 library(knitr)
 opts_chunk$set(prompt=TRUE)
 options(continue ="+ ")
 
-## ----library, echo = TRUE, eval = TRUE-----------------------------------
+## ----library, echo = TRUE, eval = TRUE----------------------------------------
 library(inferference)
 head(vaccinesim)
 
-## ----example1, echo = TRUE, eval = TRUE, results = 'hide', cache = FALSE----
+## ----example1, echo = TRUE, eval = TRUE, results = 'hide', cache = FALSE------
 example1 <- interference(
     formula = Y | A | B ~ X1 + X2 + (1|group) | group, 
     allocations = c(.3, .45,  .6), 
@@ -15,19 +15,19 @@ example1 <- interference(
     randomization = 2/3,
     method = 'simple')
 
-## ----example1_summary, echo = TRUE, eval = TRUE--------------------------
+## ----example1_summary, echo = TRUE, eval = TRUE-------------------------------
 print(example1)
 
-## ---- echo = TRUE, eval = TRUE-------------------------------------------
+## ---- echo = TRUE, eval = TRUE------------------------------------------------
 direct_effect(example1, .3)
 ie(example1, .3)
 
-## ----example2, echo = TRUE, eval = TRUE, results = 'hide', cache = FALSE----
+## ----example2, echo = TRUE, eval = TRUE, results = 'hide', cache = FALSE------
 example2 <- interference( formula = Y | A | B ~ X1 + X2 + (1|group) | group, 
     allocations = seq(.2, .8, by = .1), 
     data = vaccinesim, randomization = 2/3, method = 'simple')
 
-## ----deff_plot, echo = TRUE, fig.width = 6, fig.height = 6---------------
+## ----deff_plot, echo = TRUE, fig.width = 6, fig.height = 6--------------------
 deff <- direct_effect(example2)
 x <- deff$alpha1
 y <- as.numeric(deff$estimate)
@@ -40,7 +40,7 @@ title(ylab = expression(widehat(DE) * "(" * alpha * ")"),
 polygon(c(x, rev(x)), c(u, rev(l)), col = 'skyblue', border = NA)
 lines(x, y, cex = 2)
 
-## ----ieff_plot, echo = TRUE, fig.width = 6, fig.height = 6---------------
+## ----ieff_plot, echo = TRUE, fig.width = 6, fig.height = 6--------------------
 ieff.4 <- ie(example2, allocation1 = .4)
 x <- ieff.4$alpha2
 y <- as.numeric(ieff.4$estimate)
@@ -53,7 +53,7 @@ title(ylab = expression(widehat(IE) * "(" * 0.4 * "," * alpha * "'" * ")"),
 polygon(c(x, rev(x)), c(u, rev(l)), col = 'skyblue', border = NA)
 lines(x, y, cex = 2)
 
-## ----ieff_contour, echo = TRUE, fig.width = 6, fig.height = 6------------
+## ----ieff_contour, echo = TRUE, fig.width = 6, fig.height = 6-----------------
 ieff <- subset(example2[["estimates"]], effect == 'indirect')
 x <- sort(unique(ieff$alpha1))
 y <- sort(unique(ieff$alpha2))
@@ -64,7 +64,7 @@ contour(x, y, z, xlab = expression(alpha),
 ## ----diagnostic, echo = TRUE, eval = TRUE, fig.width = 4.5, fig.height = 4.5----
 diagnose_weights(example2, allocations = .5, breaks = 30)
 
-## ----voters_data, echo = TRUE, eval = TRUE, cache = FALSE----------------
+## ----voters_data, echo = TRUE, eval = TRUE, cache = FALSE---------------------
 voters <-  within(voters, {
     treated     = (treatment == 1 & reached == 1) * 1 
     c_age       = (age - mean(age))/10 
@@ -73,17 +73,17 @@ reach_cnt <- tapply(voters$reached, voters$family, sum)
 voters <- voters[!(voters$family %in% names(reach_cnt[reach_cnt > 1])), ]
 voters <- voters[voters$hsecontact == 1, ]
 
-## ----voter_coef, echo=TRUE, eval = TRUE, cache = FALSE-------------------
+## ----voter_coef, echo=TRUE, eval = TRUE, cache = FALSE------------------------
 voters1 <- do.call(rbind, by(voters, voters[, 'family'], function(x) x[1, ]))
 coef.voters <- coef(glm(reached ~ c_age, data = voters1, 
 		               family = binomial(link = 'logit')))
 
-## ----propensity_fixed, echo = TRUE, eval = FALSE-------------------------
+## ----propensity_fixed, echo = TRUE, eval = FALSE------------------------------
 #  fixed_propensity <- function(b){
 #  	return(0.5 * dnorm(b))
 #  }
 
-## ----household_propensity, echo =TRUE, eval = TRUE-----------------------
+## ----household_propensity, echo =TRUE, eval = TRUE----------------------------
 household_propensity <- function(b, X, A, 
                                  parameters, 
                                  group.randomization = .5){
@@ -101,7 +101,7 @@ household_propensity <- function(b, X, A,
   out
 }
 
-## ----example3, echo=TRUE, eval = TRUE, results = 'hide', cache = FALSE----
+## ----example3, echo=TRUE, eval = TRUE, results = 'hide', cache = FALSE--------
 example3 <- interference(
   formula = voted02p | treated | reached ~ c_age | family,
   propensity_integrand = 'household_propensity',
@@ -113,10 +113,10 @@ example3 <- interference(
   causal_estimation_options = list(variance_estimation = 'robust'),
   conf.level = .9)
 
-## ----example3_results, echo=TRUE, eval = TRUE----------------------------
+## ----example3_results, echo=TRUE, eval = TRUE---------------------------------
 ie(example3, .5, 0)[ , c('estimate', 'conf.low', 'conf.high')]
 
-## ----example4, echo= TRUE, eval = TRUE, results = 'hide', cache = FALSE----
+## ----example4, echo= TRUE, eval = TRUE, results = 'hide', cache = FALSE-------
 example4 <- interference(
   formula = voted02p | treated | reached ~ 1 | family,
   propensity_integrand = 'household_propensity',
@@ -128,15 +128,15 @@ example4 <- interference(
   causal_estimation_options = list(variance_estimation = 'naive'),
   conf.level = .9)
 
-## ----example4_results, echo=TRUE, eval = TRUE----------------------------
+## ----example4_results, echo=TRUE, eval = TRUE---------------------------------
 ie(example4, .5, 0)[ , c('estimate', 'conf.low', 'conf.high')]
 
-## ----example4_weights, echo = TRUE---------------------------------------
+## ----example4_weights, echo = TRUE--------------------------------------------
 G <- tapply(voters[1:12, 'treated'], voters[1:12, 'family'], sum)
 W <- head(example4[["weights"]])[, 2]
 cbind(G, W)
 
-## ----compare_weights, echo = TRUE, eval = TRUE---------------------------
+## ----compare_weights, echo = TRUE, eval = TRUE--------------------------------
 compare_weights <- function(n, alpha = .5, h = .5){
   pi  <- rep(alpha, n)
   PrA <- rep(h, n)
